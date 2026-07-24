@@ -175,6 +175,7 @@ def get_experiment(experiment_id: int, db: Session = Depends(get_db)):
                 "overall_score": r.overall_score,
                 "latency_ms": r.latency_ms,
                 "cached": r.cached,
+                "reasoning": r.reasoning or "",
             }
             for r in rows
         ],

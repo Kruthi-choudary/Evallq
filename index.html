@@ -240,7 +240,9 @@
         .result-score-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; margin-bottom: 20px; }
         .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-top: 1px solid var(--border); font-size: 13px; }
         .metric-name-label { color: var(--sub); }
-        .result-response { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+        .result-reasoning { margin-top: 16px; padding: 12px 14px; background: var(--bg); border-left: 2px solid var(--purple); }
+        .reasoning-text { font-size: 13px; color: var(--sub); line-height: 1.65; margin-top: 6px; }
+        .result-response { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
         .response-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
         .response-text { font-size: 13px; color: #c4c4d8; line-height: 1.7; }
         .view-full-btn { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--purple); background: none; border: none; padding: 0; cursor: pointer; margin-top: 8px; display: inline-block; }
@@ -838,6 +840,11 @@
                         <span class="metric-name-label">${METRIC_LABELS[i]}</span>
                         ${pill(r.scores[k])}
                     </div>`).join('')}
+                ${r.reasoning ? `
+                <div class="result-reasoning">
+                    <div class="response-label">Judge's Reasoning</div>
+                    <div class="reasoning-text">${r.reasoning}</div>
+                </div>` : ''}
                 <div class="result-response">
                     <div class="response-label">Response</div>
                     <div class="response-text">${(r.response||'').slice(0,260)}${(r.response||'').length>260?'...':''}</div>

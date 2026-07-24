@@ -22,8 +22,8 @@ Score each from 0.0 to 1.0:
 - completeness: Does the answer fully cover what was asked?
 - hallucination_free: Does the answer avoid hallucinating or inventing information? (1.0 = no hallucination)
 
-Return ONLY a JSON object, no explanation:
-{{"correctness": 0.0, "relevance": 0.0, "faithfulness": 0.0, "completeness": 0.0, "hallucination_free": 0.0}}"""
+Return ONLY a JSON object with scores and a brief reasoning (2-3 sentences explaining the scores):
+{{"correctness": 0.0, "relevance": 0.0, "faithfulness": 0.0, "completeness": 0.0, "hallucination_free": 0.0, "reasoning": "..."}}"""
 
 
 def judge_response(question: str, expected: str, response: str) -> dict:
@@ -36,15 +36,17 @@ def judge_response(question: str, expected: str, response: str) -> dict:
             temperature=0.1,
         )
         text = result.choices[0].message.content.strip()
-        match = re.search(r"\{[^{}]+\}", text, re.DOTALL)
-        if match:
-            scores = json.loads(match.group())
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1:
+            scores = json.loads(text[start:end + 1])
             return {
                 "correctness": round(float(scores.get("correctness", 0)), 2),
                 "relevance": round(float(scores.get("relevance", 0)), 2),
                 "faithfulness": round(float(scores.get("faithfulness", 0)), 2),
                 "completeness": round(float(scores.get("completeness", 0)), 2),
                 "hallucination_free": round(float(scores.get("hallucination_free", 0)), 2),
+                "reasoning": scores.get("reasoning", ""),
             }
     except Exception:
         pass
@@ -55,4 +57,5 @@ def judge_response(question: str, expected: str, response: str) -> dict:
         "faithfulness": 0.0,
         "completeness": 0.0,
         "hallucination_free": 0.0,
+        "reasoning": "",
     }

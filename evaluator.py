@@ -25,6 +25,7 @@ def evaluate_prompt(prompt: str, expected: str, model_keys: list, db: Session, e
             set_cache(db, prompt, model_key, response_text)
 
         scores = judge_response(prompt, expected, response_text)
+        reasoning = scores.pop("reasoning", "")
         overall = round(sum(scores.values()) / len(scores), 2)
 
         info = MODEL_REGISTRY.get(model_key, {})
@@ -42,6 +43,7 @@ def evaluate_prompt(prompt: str, expected: str, model_keys: list, db: Session, e
             overall_score=overall,
             latency_ms=latency_ms,
             cached=was_cached,
+            reasoning=reasoning,
             created_at=datetime.utcnow(),
         )
         db.add(row)
@@ -56,6 +58,7 @@ def evaluate_prompt(prompt: str, expected: str, model_keys: list, db: Session, e
             "overall": overall,
             "latency_ms": latency_ms,
             "cached": was_cached,
+            "reasoning": reasoning,
         })
 
     return results
