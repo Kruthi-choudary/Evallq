@@ -46,6 +46,9 @@ class EvaluationResult(Base):
     latency_ms = Column(Float, default=0.0)
     cached = Column(Boolean, default=False)
     reasoning = Column(Text, nullable=True)
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    cost_usd = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
     experiment = relationship("Experiment", back_populates="results")
 

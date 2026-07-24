@@ -120,6 +120,10 @@
 
         .latency-badge { font-size: 12px; color: var(--muted); }
         .cache-badge { font-size: 12px; color: var(--green); }
+        .cost-badge { font-size: 12px; color: var(--amber); }
+        .cost-tag { font-size: 11px; color: var(--amber); }
+        .free-cost { color: var(--green); }
+        .token-row { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
 
         /* ── Charts ──────────────────────────────────────────── */
         .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
@@ -405,7 +409,7 @@
                 <thead><tr>
                     <th>#</th><th>Model</th><th>Overall</th>
                     <th>Correctness</th><th>Relevance</th><th>Faithfulness</th>
-                    <th>Completeness</th><th>No Halluc.</th><th>Latency</th><th>Evals</th><th>Cache</th>
+                    <th>Completeness</th><th>No Halluc.</th><th>Latency</th><th>Avg Cost</th><th>Evals</th><th>Cache</th>
                 </tr></thead>
                 <tbody id="lb-body"></tbody>
             </table>
@@ -745,6 +749,7 @@
                 <td>${m.completeness}<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.completeness*100}%"></div></div></td>
                 <td>${m.hallucination_free}<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.hallucination_free*100}%"></div></div></td>
                 <td class="latency-badge">${m.avg_latency_ms}ms</td>
+                <td class="cost-badge">${m.avg_cost_usd > 0 ? '$'+m.avg_cost_usd.toFixed(4) : 'Free'}</td>
                 <td>${m.total_evals}</td>
                 <td class="cache-badge">${m.cache_hits}</td>
             </tr>`).join('')
@@ -844,10 +849,12 @@
                     <div class="result-tags">
                         ${r.cached ? '<span class="cached-tag">Cached</span>' : ''}
                         <span class="latency-tag">${r.cached ? '' : r.latency_ms + 'ms'}</span>
+                        ${!r.cached && r.cost_usd > 0 ? `<span class="cost-tag">$${r.cost_usd.toFixed(4)}</span>` : (r.cached ? '' : '<span class="cost-tag free-cost">Free</span>')}
                     </div>
                 </div>
                 <div class="result-score">${r.overall}</div>
                 <div class="result-score-label">Overall Score</div>
+                ${!r.cached && (r.input_tokens || r.output_tokens) ? `<div class="token-row"><span>${r.input_tokens} in · ${r.output_tokens} out tokens</span></div>` : ''}
                 ${METRIC_KEYS.map((k,i) => `
                     <div class="metric-row">
                         <span class="metric-name-label">${METRIC_LABELS[i]}</span>

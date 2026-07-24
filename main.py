@@ -210,6 +210,8 @@ def leaderboard(db: Session = Depends(get_db)):
             "avg_latency_ms": avg_latency,
             "total_evals": total,
             "cache_hits": sum(1 for r in rows if r.cached),
+            "total_cost_usd": round(sum(r.cost_usd or 0 for r in rows), 4),
+            "avg_cost_usd": round(sum(r.cost_usd or 0 for r in live_rows) / len(live_rows), 6) if live_rows else 0,
         })
 
     result.sort(key=lambda x: x["overall"], reverse=True)

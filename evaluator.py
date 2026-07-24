@@ -18,21 +18,25 @@ def evaluate_prompt(prompt: str, expected: str, model_keys: list, db: Session, e
         cached = cache_map[model_key]
         if cached:
             response_text, latency_ms, was_cached = cached, 0.0, True
+            input_tokens = output_tokens = cost_usd = 0
         else:
             data = call_model(model_key, prompt, api_keys)
             response_text, latency_ms, was_cached = data["response"], data["latency_ms"], False
+            input_tokens  = data.get("input_tokens", 0)
+            output_tokens = data.get("output_tokens", 0)
+            cost_usd      = data.get("cost_usd", 0.0)
 
         scores = judge_response(prompt, expected, response_text)
         reasoning = scores.pop("reasoning", "")
         overall = round(sum(scores.values()) / len(scores), 2)
-        return model_key, response_text, latency_ms, was_cached, scores, reasoning, overall
+        return model_key, response_text, latency_ms, was_cached, scores, reasoning, overall, input_tokens, output_tokens, cost_usd
 
     with ThreadPoolExecutor(max_workers=min(len(model_keys), 5)) as ex:
         processed = list(ex.map(process, model_keys))
 
     # Phase 3 — save to DB + build response (sequential, uses DB)
     results = []
-    for model_key, response_text, latency_ms, was_cached, scores, reasoning, overall in processed:
+    for model_key, response_text, latency_ms, was_cached, scores, reasoning, overall, input_tokens, output_tokens, cost_usd in processed:
         if not was_cached:
             set_cache(db, prompt, model_key, response_text)
 
@@ -52,6 +56,9 @@ def evaluate_prompt(prompt: str, expected: str, model_keys: list, db: Session, e
             latency_ms=latency_ms,
             cached=was_cached,
             reasoning=reasoning,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost_usd,
             created_at=datetime.utcnow(),
         ))
         db.commit()
@@ -66,6 +73,9 @@ def evaluate_prompt(prompt: str, expected: str, model_keys: list, db: Session, e
             "latency_ms": latency_ms,
             "cached": was_cached,
             "reasoning": reasoning,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cost_usd": cost_usd,
         })
 
     return results
