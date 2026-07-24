@@ -28,7 +28,6 @@ MODEL_REGISTRY = {
     "gemini-2.5-pro":   {"provider":"gemini","model_id":"gemini-2.5-pro","label":"Gemini 2.5 Pro","company":"Google","free":False,"cost_in":1.25,"cost_out":10.0},
     "gemini-2.5-flash": {"provider":"gemini","model_id":"gemini-2.5-flash","label":"Gemini 2.5 Flash","company":"Google","free":False,"cost_in":0.30,"cost_out":2.50},
     "gemini-2.0-flash": {"provider":"gemini","model_id":"gemini-2.0-flash","label":"Gemini 2.0 Flash","company":"Google","free":False,"cost_in":0.10,"cost_out":0.40},
-    "gemini-1.5-pro":   {"provider":"gemini","model_id":"gemini-1.5-pro","label":"Gemini 1.5 Pro","company":"Google","free":False,"cost_in":1.25,"cost_out":5.0},
 }
 
 AVAILABLE_MODELS = {k: v["model_id"] for k, v in MODEL_REGISTRY.items()}
