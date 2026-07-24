@@ -92,11 +92,11 @@
 
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
         thead th {
-            font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
-            color: var(--muted); font-weight: 500; padding: 12px 16px;
-            text-align: left; border-bottom: 1px solid var(--border);
+            font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+            color: var(--muted); font-weight: 500; padding: 12px 12px;
+            text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap;
         }
-        tbody td { padding: 14px 16px; border-bottom: 1px solid var(--border); color: var(--sub); vertical-align: middle; }
+        tbody td { padding: 14px 12px; border-bottom: 1px solid var(--border); color: var(--sub); vertical-align: middle; white-space: nowrap; }
         tbody tr:last-child td { border-bottom: none; }
         tbody tr:hover td { background: var(--bg-hover); color: var(--text); }
         tbody td:first-child { color: var(--muted); font-size: 12px; }
@@ -104,7 +104,7 @@
         .rank-num { font-size: 12px; color: var(--muted); font-weight: 500; }
         .rank-1 { color: var(--purple); }
 
-        .model-name-cell { color: var(--text); font-weight: 500; }
+        .model-name-cell { color: var(--text); font-weight: 500; white-space: normal; min-width: 110px; }
         .model-co { font-size: 12px; color: var(--muted); display: block; margin-top: 2px; }
 
         .mini-bar-bg { width: 60px; height: 3px; background: var(--border); display: inline-block; vertical-align: middle; margin-left: 6px; }
@@ -253,7 +253,8 @@
         .view-full-btn:hover { opacity: 0.7; }
 
         /* ── Experiments ─────────────────────────────────────── */
-        .exp-table-wrap { background: var(--bg-card); border: 1px solid var(--border); }
+        .exp-table-wrap { background: var(--bg-card); border: 1px solid var(--border); overflow-x: auto; }
+        .exp-table-wrap table { min-width: 900px; }
 
         /* ── Upload ──────────────────────────────────────────── */
         .upload-zone {
