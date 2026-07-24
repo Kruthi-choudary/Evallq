@@ -14,13 +14,18 @@ Run any prompt against up to 3 models at once. An independent LLaMA 3.3 70B judg
 
 - **16 models** — Meta, OpenAI, Anthropic, Google across free and paid tiers
 - **5 eval metrics** — Correctness, Relevance, Faithfulness, Completeness, Hallucination-Free
-- **LLM-as-judge** — automated scoring, zero human effort
+- **LLM-as-judge** — automated scoring with reasoning explanation per response
+- **Parallel model calls** — all selected models run concurrently via `ThreadPoolExecutor`
 - **BYOK** — bring your own API keys for GPT, Claude, Gemini; stored in browser only, never on server
 - **Groq models free** — LLaMA 3.3 70B, LLaMA 3.1 8B, Qwen 3.6 27B run with no key needed
+- **Cost + token tracking** — per-call token counts and USD cost based on provider rates
 - **Response caching** — SHA256-based cache avoids redundant API calls
 - **Batch evaluation** — upload CSV/JSON datasets to evaluate at scale
 - **Experiment tracking** — every run saved with full result history
-- **Leaderboard** — ranked model comparison with charts
+- **Response comparison** — side-by-side model responses with scores per experiment prompt
+- **Export CSV** — download full experiment results including scores, tokens, cost, and reasoning
+- **Prompt library** — save and reload prompts locally (localStorage, no server needed)
+- **Leaderboard** — ranked model comparison with bar chart and radar chart visualizations
 
 ## Tech Stack
 
