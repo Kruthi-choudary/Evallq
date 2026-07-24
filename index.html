@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EvalIQ</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg:        #0e0e12;
+            --bg-card:   #16161c;
+            --bg-hover:  #1e1e26;
+            --border:    #2a2a38;
+            --purple:    #a855f7;
+            --purple-bg: #1e1028;
+            --text:      #f0f0f5;
+            --sub:       #b0b0c8;
+            --muted:     #72728a;
+            --green:     #22c55e;
+            --amber:     #f59e0b;
+            --red:       #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* ── Nav ─────────────────────────────────────────────── */
+        nav {
+            display: flex; align-items: center; gap: 40px;
+            padding: 0 48px; border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100; background: var(--bg);
+        }
+        .nav-logo {
+            font-size: 20px; font-weight: 700; letter-spacing: 1px;
+            color: var(--text); padding: 20px 0; margin-right: 8px; display: flex; align-items: center; gap: 8px;
+        }
+        .nav-logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); }
+        .nav-tab {
+            font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--sub); cursor: pointer; padding: 20px 0;
+            border-bottom: 2px solid transparent; transition: all 0.15s;
+        }
+        .nav-tab:hover { color: var(--text); }
+        .nav-tab.active { color: var(--text); border-bottom-color: var(--purple); }
+        .nav-spacer { flex: 1; }
+        .nav-keys-btn {
+            font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+            padding: 9px 20px; background: var(--purple); color: #fff;
+            border: none; cursor: pointer; font-weight: 600; transition: opacity 0.15s;
+        }
+        .nav-keys-btn:hover { opacity: 0.85; }
+        .key-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.25); display: inline-block; margin-right: 4px; transition: background 0.2s; }
+        .key-dot.active { background: var(--green); }
+
+        /* ── Pages ───────────────────────────────────────────── */
+        .page { display: none; max-width: 1200px; margin: 0 auto; padding: 48px; }
+        .page.active { display: block; }
+
+        /* ── Section label ───────────────────────────────────── */
+        .section-label {
+            font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 24px; display: flex; align-items: center; gap: 10px;
+        }
+        .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        /* ── Live indicator ──────────────────────────────────── */
+        .live-bar {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--sub);
+            margin-bottom: 32px;
+        }
+        .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--purple); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        /* ── Card ────────────────────────────────────────────── */
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            padding: 28px; margin-bottom: 16px;
+        }
+
+        /* ── Big stat ────────────────────────────────────────── */
+        .big-stat { font-size: 3rem; font-weight: 700; color: var(--purple); line-height: 1; }
+        .big-stat-label { font-size: 13px; color: var(--sub); margin-top: 6px; letter-spacing: 0.5px; }
+
+        /* ── Leaderboard ─────────────────────────────────────── */
+        .lb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+        .lb-stat-card { background: var(--bg-card); border: 1px solid var(--border); padding: 24px; }
+        .lb-stat-num { font-size: 2.7rem; font-weight: 700; color: var(--purple); line-height: 1; margin-bottom: 6px; }
+        .lb-stat-desc { font-size: 13px; color: var(--sub); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead th {
+            font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--muted); font-weight: 500; padding: 12px 16px;
+            text-align: left; border-bottom: 1px solid var(--border);
+        }
+        tbody td { padding: 14px 16px; border-bottom: 1px solid var(--border); color: var(--sub); vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: var(--bg-hover); color: var(--text); }
+        tbody td:first-child { color: var(--muted); font-size: 12px; }
+
+        .rank-num { font-size: 12px; color: var(--muted); font-weight: 500; }
+        .rank-1 { color: var(--purple); }
+
+        .model-name-cell { color: var(--text); font-weight: 500; }
+        .model-co { font-size: 12px; color: var(--muted); display: block; margin-top: 2px; }
+
+        .mini-bar-bg { width: 60px; height: 3px; background: var(--border); display: inline-block; vertical-align: middle; margin-left: 6px; }
+        .mini-bar-fill { height: 3px; background: var(--purple); }
+
+        .score-pill {
+            display: inline-block; padding: 2px 10px;
+            font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+        }
+        .score-high { background: var(--purple-bg); color: var(--purple); }
+        .score-mid  { background: #1c1500; color: var(--amber); }
+        .score-low  { background: #1c0a0a; color: var(--red); }
+
+        .latency-badge { font-size: 12px; color: var(--muted); }
+        .cache-badge { font-size: 12px; color: var(--green); }
+
+        /* ── Charts ──────────────────────────────────────────── */
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+        .chart-card { background: var(--bg-card); border: 1px solid var(--border); padding: 24px; }
+        .chart-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; }
+
+        /* ── Forms ───────────────────────────────────────────── */
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--sub); margin-bottom: 10px; }
+        textarea, input[type=text] {
+            width: 100%; padding: 12px 16px;
+            background: var(--bg); border: 1px solid var(--border); color: var(--text);
+            font-family: inherit; font-size: 14px; resize: vertical; outline: none;
+            transition: border 0.15s;
+        }
+        textarea:focus, input[type=text]:focus { border-color: var(--purple); }
+        textarea::placeholder, input::placeholder { color: var(--muted); }
+
+        /* ── Buttons ─────────────────────────────────────────── */
+        .btn-primary {
+            font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;
+            padding: 13px 32px; background: var(--purple); color: #fff;
+            border: none; cursor: pointer; transition: opacity 0.15s;
+        }
+        .btn-primary:hover { opacity: 0.85; }
+        .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+        .btn-ghost {
+            font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;
+            padding: 13px 32px; background: transparent; color: var(--sub);
+            border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
+        }
+        .btn-ghost:hover { border-color: var(--sub); color: var(--text); }
+
+        /* ── Error / Loading ─────────────────────────────────── */
+        .eval-error {
+            display: none; margin-top: 12px; padding: 11px 16px;
+            background: #1c0a0a; border: 1px solid #3a1515;
+            font-size: 13px; color: var(--red); letter-spacing: 0.3px;
+        }
+        .loading-row { display: none; align-items: center; gap: 10px; margin-top: 14px; font-size: 13px; color: var(--sub); }
+        .loading-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--purple); animation: pulse 1s infinite; }
+
+        /* ── Model selector ──────────────────────────────────── */
+        .model-counter { font-size: 12px; color: var(--sub); margin-bottom: 16px; letter-spacing: 0.5px; }
+        .model-counter b { color: var(--purple); }
+
+        .free-chips { display: flex; gap: 8px; margin-bottom: 12px; }
+        .free-chip {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 16px; border: 1px solid var(--border);
+            cursor: pointer; user-select: none; transition: all 0.15s; background: var(--bg-card);
+            flex: 1;
+        }
+        .free-chip.selected { border-color: var(--purple); background: var(--purple-bg); }
+        .free-chip.maxed { opacity: 0.3; cursor: not-allowed; }
+        .free-chip input { display: none; }
+        .free-chip-name { font-size: 13px; font-weight: 500; color: var(--text); }
+        .free-chip-co { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .free-chip.selected .free-chip-co { color: var(--purple); opacity: 0.7; }
+        .free-tag { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; background: var(--purple-bg); color: var(--purple); padding: 2px 8px; margin-left: auto; }
+
+        .provider-block { border: 1px solid var(--border); margin-bottom: 8px; }
+        .provider-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 13px 18px; cursor: pointer; user-select: none;
+            transition: background 0.15s;
+        }
+        .provider-header:hover { background: var(--bg-hover); }
+        .provider-left { display: flex; align-items: center; gap: 12px; }
+        .provider-name { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+        .provider-name.openai   { color: #4ade80; }
+        .provider-name.anthropic{ color: #c084fc; }
+        .provider-name.google   { color: #fb923c; }
+        .provider-key-status { font-size: 11px; letter-spacing: 0.5px; color: var(--muted); }
+        .provider-key-status.has-key { color: var(--green); }
+        .provider-sel-count { font-size: 11px; background: var(--purple); color: #fff; padding: 1px 8px; letter-spacing: 0.5px; display: none; }
+        .provider-chevron { font-size: 11px; color: var(--muted); transition: transform 0.2s; }
+        .provider-block.open .provider-chevron { transform: rotate(180deg); }
+
+        .provider-models { display: none; border-top: 1px solid var(--border); padding: 8px; flex-direction: column; gap: 4px; }
+        .provider-block.open .provider-models { display: flex; }
+        .provider-block.no-key { opacity: 0.4; }
+
+        .model-option {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 16px; border: 1px solid var(--border);
+            cursor: pointer; font-size: 13px; user-select: none;
+            color: var(--sub); transition: all 0.15s; background: var(--bg);
+            width: 100%;
+        }
+        .model-option:hover { border-color: var(--sub); color: var(--text); }
+        .model-option.selected { border-color: var(--purple); background: var(--purple-bg); color: var(--text); }
+        .model-option.maxed { opacity: 0.3; cursor: not-allowed; }
+        .model-option input { display: none; }
+        .chk { width: 13px; height: 13px; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .model-option.selected .chk { background: var(--purple); border-color: var(--purple); }
+        .model-option.selected .chk::after { content: '✓'; font-size: 10px; color: #fff; }
+
+        /* ── Results ─────────────────────────────────────────── */
+        .winner-bar {
+            display: none; margin-top: 24px; padding: 14px 20px;
+            border: 1px solid var(--purple); background: var(--purple-bg);
+            font-size: 14px; color: var(--text);
+        }
+        .winner-bar b { color: var(--text); }
+        .winner-bar .winner-score { color: var(--purple); font-weight: 700; font-size: 15px; }
+
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+        .result-card { background: var(--bg-card); border: 1px solid var(--border); padding: 24px; }
+        .result-card.winner-card { border-color: var(--purple); }
+        .result-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .result-model-name { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--sub); }
+        .result-company { font-size: 13px; color: var(--muted); margin-top: 3px; }
+        .result-tags { display: flex; gap: 6px; align-items: center; }
+        .cached-tag { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; background: #0a1c0a; color: var(--green); padding: 2px 7px; }
+        .latency-tag { font-size: 11px; color: var(--muted); }
+        .result-score { font-size: 3.6rem; font-weight: 700; color: var(--purple); line-height: 1; margin-bottom: 4px; }
+        .result-score-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; margin-bottom: 20px; }
+        .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-top: 1px solid var(--border); font-size: 13px; }
+        .metric-name-label { color: var(--sub); }
+        .result-response { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+        .response-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+        .response-text { font-size: 13px; color: #c4c4d8; line-height: 1.7; }
+        .view-full-btn { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--purple); background: none; border: none; padding: 0; cursor: pointer; margin-top: 8px; display: inline-block; }
+        .view-full-btn:hover { opacity: 0.7; }
+
+        /* ── Experiments ─────────────────────────────────────── */
+        .exp-table-wrap { background: var(--bg-card); border: 1px solid var(--border); }
+
+        /* ── Upload ──────────────────────────────────────────── */
+        .upload-zone {
+            border: 1px dashed var(--border); padding: 40px; text-align: center;
+            cursor: pointer; transition: border 0.15s; background: var(--bg);
+        }
+        .upload-zone:hover { border-color: var(--purple); }
+        .upload-zone input { display: none; }
+        .upload-arrow { font-size: 24px; color: var(--muted); margin-bottom: 10px; }
+        .upload-hint { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+        .upload-sub { font-size: 12px; color: var(--muted); }
+
+        /* ── Modals ──────────────────────────────────────────── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7); z-index: 200; overflow-y: auto;
+        }
+        .modal {
+            background: var(--bg-card); border: 1px solid var(--border);
+            max-width: 540px; margin: 60px auto;
+        }
+        .modal.modal-wide { max-width: 960px; }
+        .modal-head {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-head-title { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--sub); }
+        .modal-close { background: none; border: none; font-size: 18px; color: var(--muted); cursor: pointer; }
+        .modal-close:hover { color: var(--text); }
+        .modal-body { padding: 24px; }
+
+        /* ── Settings ────────────────────────────────────────── */
+        .key-group { margin-bottom: 24px; }
+        .key-group-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--sub); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .key-row { display: flex; gap: 0; }
+        .key-input {
+            flex: 1; padding: 11px 14px; background: var(--bg);
+            border: 1px solid var(--border); border-right: none;
+            color: var(--text); font-family: monospace; font-size: 13px; outline: none;
+        }
+        .key-input:focus { border-color: var(--purple); }
+        .key-save { padding: 11px 18px; background: var(--purple); color: #fff; border: none; cursor: pointer; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+        .key-status { font-size: 12px; margin-top: 6px; color: var(--muted); }
+        .key-status.set { color: var(--green); }
+
+        .response-modal-text { font-size: 14px; line-height: 1.8; color: #d8d8ea; white-space: pre-wrap; word-break: break-word; max-height: 60vh; overflow-y: auto; }
+
+        /* ── Dashboard hero ──────────────────────────────────── */
+        .dash-hero {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 64px;
+            padding-bottom: 48px; border-bottom: 1px solid var(--border);
+        }
+        .dash-brand {
+            font-size: 3.8rem; font-weight: 800; color: var(--purple);
+            letter-spacing: -1px; line-height: 1; margin-bottom: 12px;
+        }
+        .dash-eyebrow {
+            font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+            color: var(--purple); margin-bottom: 20px;
+        }
+        .dash-title {
+            font-size: 3rem; font-weight: 700; line-height: 1.15;
+            color: var(--text); margin-bottom: 20px; letter-spacing: -0.5px;
+        }
+        .dash-desc {
+            font-size: 15px; color: var(--sub); line-height: 1.8;
+            max-width: 460px; margin-bottom: 28px;
+        }
+        .dash-cta-row { display: flex; align-items: center; gap: 20px; }
+        .dash-cta-hint { font-size: 12px; color: var(--muted); letter-spacing: 0.5px; }
+
+        .dash-hero-right { display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+        .dash-feature-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            padding: 22px 24px; display: flex; gap: 18px; align-items: flex-start;
+            transition: border-color 0.15s; flex: 1;
+        }
+        .dash-feature-card:hover { border-color: var(--purple); }
+        .dash-feat-icon { font-size: 20px; color: var(--purple); flex-shrink: 0; margin-top: 2px; }
+        .dash-feat-body { flex: 1; }
+        .dash-feat-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; white-space: nowrap; }
+        .dash-feat-desc { font-size: 13px; color: var(--sub); line-height: 1.6; }
+
+        /* ── Empty state ─────────────────────────────────────── */
+        .empty { text-align: center; padding: 64px 24px; color: var(--sub); font-size: 14px; letter-spacing: 0.5px; }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+    <div class="nav-logo">
+        <div class="nav-logo-dot"></div>
+        EvalIQ
+    </div>
+    <a class="nav-tab active" onclick="showPage('leaderboard',this)">Leaderboard</a>
+    <a class="nav-tab" onclick="showPage('evaluate',this)">Evaluate</a>
+    <a class="nav-tab" onclick="showPage('batch',this)">Batch</a>
+    <a class="nav-tab" onclick="showPage('experiments',this)">Experiments</a>
+    <div class="nav-spacer"></div>
+    <button class="nav-keys-btn" onclick="openSettings()">
+        <span class="key-dot" id="dot-openai"></span>
+        <span class="key-dot" id="dot-anthropic"></span>
+        <span class="key-dot" id="dot-google"></span>
+        API Keys
+    </button>
+</nav>
+
+<!-- LEADERBOARD -->
+<div class="page active" id="page-leaderboard">
+
+    <!-- Hero -->
+    <div class="dash-hero">
+        <div class="dash-hero-left">
+            <div class="dash-brand">EvalIQ</div>
+            <h1 class="dash-title">LLM Evaluation<br>Framework</h1>
+            <p class="dash-desc">Run any prompt against multiple AI models simultaneously. An independent LLM judge scores every response across 5 quality metrics — no human annotation needed. Compare GPT, Claude, Gemini, and open-source models side by side.</p>
+            <div class="dash-cta-row">
+                <button class="btn-primary" onclick="showPage('evaluate',document.querySelectorAll('.nav-tab')[1])">Run Evaluation →</button>
+            </div>
+        </div>
+        <div class="dash-hero-right">
+            <div class="dash-feature-card">
+                <div class="dash-feat-icon">◈</div>
+                <div class="dash-feat-body">
+                    <div class="dash-feat-title">5 Eval Metrics</div>
+                    <div class="dash-feat-desc">Correctness · Relevance · Faithfulness · Completeness · Hallucination-Free</div>
+                </div>
+            </div>
+            <div class="dash-feature-card">
+                <div class="dash-feat-icon">⬡</div>
+                <div class="dash-feat-body">
+                    <div class="dash-feat-title">LLM-as-Judge</div>
+                    <div class="dash-feat-desc">LLaMA 3.3 70B automatically scores every response. Consistent, fast, zero human effort.</div>
+                </div>
+            </div>
+            <div class="dash-feature-card">
+                <div class="dash-feat-icon">◎</div>
+                <div class="dash-feat-body">
+                    <div class="dash-feat-title">16 Models</div>
+                    <div class="dash-feat-desc">Groq (free) + OpenAI, Anthropic, Google via your own API keys (BYOK).</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-label" style="margin-top:48px">Model Rankings</div>
+    <div id="lb-empty" class="empty" style="display:none">No evaluations yet — run one from the Evaluate tab.</div>
+    <div id="lb-content" style="display:none">
+        <div class="lb-grid" id="lb-stat-grid"></div>
+        <div class="exp-table-wrap">
+            <table>
+                <thead><tr>
+                    <th>#</th><th>Model</th><th>Overall</th>
+                    <th>Correctness</th><th>Relevance</th><th>Faithfulness</th>
+                    <th>Completeness</th><th>No Halluc.</th><th>Latency</th><th>Evals</th><th>Cache</th>
+                </tr></thead>
+                <tbody id="lb-body"></tbody>
+            </table>
+        </div>
+        <div class="chart-grid">
+            <div class="chart-card"><div class="chart-title">Metric Breakdown</div><canvas id="chart-metrics" height="220"></canvas></div>
+            <div class="chart-card"><div class="chart-title">Overall Score</div><canvas id="chart-overall" height="220"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- EVALUATE -->
+<div class="page" id="page-evaluate">
+    <div class="section-label">Run a Prompt</div>
+    <div class="card">
+        <div class="form-group">
+            <label class="form-label">Prompt</label>
+            <textarea id="eval-prompt" rows="4" placeholder="e.g. Explain how transformer attention works"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Expected Answer <span style="color:var(--muted);font-size:9px;text-transform:none;letter-spacing:0"> — optional, used for scoring</span></label>
+            <textarea id="eval-expected" rows="2" placeholder="e.g. Transformers use self-attention to weight token relationships..."></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Models <span style="color:var(--muted);font-size:9px;text-transform:none;letter-spacing:0"> — max 3</span></label>
+            <div id="model-selector">
+                <div class="model-counter">Loading models...</div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Experiment Name</label>
+            <input type="text" id="eval-name" value="Single Evaluation">
+        </div>
+        <button class="btn-primary" id="eval-btn" onclick="runEval()">Run Evaluation</button>
+        <div class="eval-error" id="eval-error"></div>
+        <div class="loading-row" id="eval-loading"><div class="loading-dot"></div> Calling models and scoring responses — ~30 seconds</div>
+    </div>
+
+    <div id="eval-results" style="display:none">
+        <div class="section-label" style="margin-top:32px">Results</div>
+        <div class="winner-bar" id="winner-bar"></div>
+        <div class="results-grid" id="results-grid"></div>
+    </div>
+</div>
+
+<!-- BATCH -->
+<div class="page" id="page-batch">
+    <div class="section-label">Upload Dataset</div>
+    <div class="card">
+        <div class="form-group">
+            <label class="form-label">Experiment Name</label>
+            <input type="text" id="batch-name" value="Batch Evaluation">
+        </div>
+        <div class="upload-zone" onclick="document.getElementById('batch-file').click()">
+            <input type="file" id="batch-file" accept=".csv,.json" onchange="handleFile(this)">
+            <div class="upload-arrow">↑</div>
+            <div class="upload-hint">Click to upload CSV or JSON</div>
+            <div class="upload-sub">CSV columns: <code style="color:var(--purple)">prompt</code>, <code style="color:var(--purple)">expected</code></div>
+        </div>
+        <div id="file-info" style="display:none;margin-top:12px;font-size:12px;color:var(--sub)"></div>
+        <button class="btn-primary" id="batch-btn" onclick="runBatch()" style="margin-top:20px" disabled>Run Batch</button>
+        <div class="loading-row" id="batch-loading"><div class="loading-dot"></div> Running batch — this may take several minutes...</div>
+    </div>
+    <div id="batch-results" style="display:none">
+        <div class="section-label" style="margin-top:32px">Done</div>
+        <div id="batch-summary"></div>
+    </div>
+</div>
+
+<!-- EXPERIMENTS -->
+<div class="page" id="page-experiments">
+    <div class="section-label">All Runs</div>
+    <div id="exp-empty" class="empty" style="display:none">No experiments yet.</div>
+    <div class="exp-table-wrap" id="exp-table-wrap" style="display:none">
+        <table>
+            <thead><tr><th>#</th><th>Name</th><th>Date</th><th>Prompts</th><th>Models</th><th>Avg Score</th><th></th></tr></thead>
+            <tbody id="exp-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+    <div class="modal">
+        <div class="modal-head">
+            <div class="modal-head-title">API Keys</div>
+            <button class="modal-close" onclick="closeSettings()">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:12px;color:var(--muted);margin-bottom:24px;line-height:1.6">Keys are stored in your browser only — never saved on the server. Add keys to unlock GPT, Claude, and Gemini models. Groq models are always free.</p>
+
+            <div class="key-group">
+                <div class="key-group-label"><span style="color:#4ade80">●</span> OpenAI</div>
+                <div class="key-row">
+                    <input class="key-input" type="password" id="key-openai" placeholder="sk-...">
+                    <button class="key-save" onclick="saveKey('openai')">Save</button>
+                </div>
+                <div class="key-status" id="status-openai">Not set</div>
+            </div>
+
+            <div class="key-group">
+                <div class="key-group-label"><span style="color:#c084fc">●</span> Anthropic</div>
+                <div class="key-row">
+                    <input class="key-input" type="password" id="key-anthropic" placeholder="sk-ant-...">
+                    <button class="key-save" onclick="saveKey('anthropic')">Save</button>
+                </div>
+                <div class="key-status" id="status-anthropic">Not set</div>
+            </div>
+
+            <div class="key-group">
+                <div class="key-group-label"><span style="color:#fb923c">●</span> Google (Gemini)</div>
+                <div class="key-row">
+                    <input class="key-input" type="password" id="key-gemini" placeholder="AIza...">
+                    <button class="key-save" onclick="saveKey('gemini')">Save</button>
+                </div>
+                <div class="key-status" id="status-gemini">Not set</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FULL RESPONSE MODAL -->
+<div class="modal-overlay" id="response-modal" onclick="if(event.target===this)closeResponse()">
+    <div class="modal">
+        <div class="modal-head">
+            <div class="modal-head-title" id="response-modal-title">Full Response</div>
+            <button class="modal-close" onclick="closeResponse()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="response-modal-text" id="response-modal-text"></div>
+        </div>
+    </div>
+</div>
+
+<!-- EXPERIMENT DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal" onclick="if(event.target===this)closeDetail()">
+    <div class="modal modal-wide">
+        <div class="modal-head">
+            <div class="modal-head-title" id="detail-title">Experiment</div>
+            <button class="modal-close" onclick="closeDetail()">×</button>
+        </div>
+        <div class="modal-body" id="detail-body"></div>
+    </div>
+</div>
+
+<script>
+    // ── Config ──────────────────────────────────────────────────
+    const METRIC_KEYS   = ['correctness','relevance','faithfulness','completeness','hallucination_free']
+    const METRIC_LABELS = ['Correctness','Relevance','Faithfulness','Completeness','No Halluc.']
+    const MAX_MODELS    = 3
+    const CHART_COLORS  = ['#8b6fd4','#5aaa8a','#c47850','#5a90b4','#b45870','#b09850']
+
+    // Chart.js dark defaults
+    Chart.defaults.color = '#8080a0'
+    Chart.defaults.borderColor = '#2a2a38'
+
+    let allModels = [], _responses = [], chartM = null, chartO = null, selectedFile = null
+
+    // ── Init ────────────────────────────────────────────────────
+    loadKeys(); loadModels(); loadLeaderboard(); loadExperiments()
+
+    // ── Keys ────────────────────────────────────────────────────
+    function getKeys() {
+        return {
+            openai:    localStorage.getItem('key_openai')    || '',
+            anthropic: localStorage.getItem('key_anthropic') || '',
+            gemini:    localStorage.getItem('key_gemini')    || '',
+        }
+    }
+    function getHeaders() {
+        const k = getKeys(), h = {}
+        if (k.openai)    h['X-OpenAI-Key']    = k.openai
+        if (k.anthropic) h['X-Anthropic-Key'] = k.anthropic
+        if (k.gemini)    h['X-Gemini-Key']    = k.gemini
+        return h
+    }
+    function loadKeys() {
+        const k = getKeys()
+        ;['openai','anthropic','gemini'].forEach(p => {
+            const el = document.getElementById('status-' + p)
+            const dot = document.getElementById('dot-' + (p === 'gemini' ? 'google' : p))
+            if (k[p]) { el.textContent = 'Key saved'; el.className = 'key-status set'; dot && dot.classList.add('active') }
+            else { el.textContent = 'Not set'; el.className = 'key-status'; dot && dot.classList.remove('active') }
+        })
+    }
+    function saveKey(p) {
+        const v = document.getElementById('key-' + p).value.trim()
+        v ? localStorage.setItem('key_' + p, v) : localStorage.removeItem('key_' + p)
+        loadKeys(); renderModelSelector()
+    }
+    function openSettings() { document.getElementById('settings-modal').style.display = 'block' }
+    function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; renderModelSelector() }
+
+    // ── Nav ─────────────────────────────────────────────────────
+    function showPage(name, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'))
+        document.getElementById('page-' + name).classList.add('active')
+        el.classList.add('active')
+        if (name === 'leaderboard') loadLeaderboard()
+        if (name === 'experiments') loadExperiments()
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────
+    function pill(v) {
+        const cls = v >= 0.7 ? 'score-high' : v >= 0.4 ? 'score-mid' : 'score-low'
+        return `<span class="score-pill ${cls}">${v}</span>`
+    }
+
+    // ── Models ──────────────────────────────────────────────────
+    async function loadModels() {
+        allModels = await fetch('/models').then(r => r.json())
+        renderModelSelector()
+    }
+
+    function getSelected() {
+        return [...document.querySelectorAll('#model-selector input[type=checkbox]:checked')].map(el => el.value)
+    }
+
+    function updateCounter() {
+        const count = getSelected().length
+        const el = document.getElementById('ms-counter')
+        if (el) el.innerHTML = `<b>${count}</b> / ${MAX_MODELS} selected`
+
+        document.querySelectorAll('#model-selector input[type=checkbox]').forEach(cb => {
+            const p = cb.closest('.free-chip, .model-option')
+            if (!p) return
+            if (!cb.checked && count >= MAX_MODELS) { p.classList.add('maxed'); if (!cb.dataset.nokey) cb.disabled = true }
+            else if (!cb.dataset.nokey) { p.classList.remove('maxed'); cb.disabled = false }
+        })
+        document.querySelectorAll('.provider-block').forEach(acc => {
+            const n = acc.querySelectorAll('input:checked').length
+            const b = acc.querySelector('.provider-sel-count')
+            if (b) { b.textContent = n; b.style.display = n ? 'inline' : 'none' }
+        })
+    }
+
+    function renderModelSelector() {
+        const keys = getKeys()
+        const wrap = document.getElementById('model-selector')
+        if (!wrap || !allModels.length) return
+
+        const freeModels = allModels.filter(m => m.free)
+        const providers = [
+            { name: 'OpenAI',    key: 'openai',    cls: 'openai' },
+            { name: 'Anthropic', key: 'anthropic', cls: 'anthropic' },
+            { name: 'Google',    key: 'gemini',    cls: 'google' },
+        ]
+
+        const freeHTML = `
+            <div class="free-chips">
+                ${freeModels.map(m => `
+                    <label class="free-chip selected" id="chip-${m.key}">
+                        <input type="checkbox" value="${m.key}" checked onchange="onToggle(this)">
+                        <div>
+                            <div class="free-chip-name">${m.label}</div>
+                            <div class="free-chip-co">${m.company}</div>
+                        </div>
+                        <span class="free-tag">Free</span>
+                    </label>
+                `).join('')}
+            </div>`
+
+        const accordionsHTML = providers.map(p => {
+            const hasKey = !!keys[p.key]
+            const pModels = allModels.filter(m => m.provider === p.key)
+            return `
+                <div class="provider-block ${hasKey ? '' : 'no-key'}" id="acc-${p.key}">
+                    <div class="provider-header" onclick="toggleAcc('${p.key}')">
+                        <div class="provider-left">
+                            <span class="provider-name ${p.cls}">${p.name}</span>
+                            <span class="provider-key-status ${hasKey ? 'has-key' : ''}">${hasKey ? '● Key active' : 'Add key in API Keys to unlock'}</span>
+                            <span class="provider-sel-count" style="display:none">0</span>
+                        </div>
+                        <span class="provider-chevron">▼</span>
+                    </div>
+                    <div class="provider-models">
+                        ${pModels.map(m => `
+                            <label class="model-option ${hasKey ? '' : 'maxed'}">
+                                <input type="checkbox" value="${m.key}" ${hasKey ? '' : 'disabled'} ${hasKey ? '' : 'data-nokey=1'} onchange="onToggle(this)">
+                                <div class="chk"></div>
+                                ${m.label}
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>`
+        }).join('')
+
+        wrap.innerHTML = `
+            <div class="model-counter" id="ms-counter"><b>0</b> / ${MAX_MODELS} selected</div>
+            ${freeHTML}${accordionsHTML}`
+
+        updateCounter()
+    }
+
+    function toggleAcc(key) {
+        const el = document.getElementById('acc-' + key)
+        if (el && !el.classList.contains('no-key')) el.classList.toggle('open')
+    }
+
+    function onToggle(cb) {
+        cb.closest('.free-chip, .model-option')?.classList.toggle('selected', cb.checked)
+        updateCounter()
+    }
+
+    // ── Leaderboard ─────────────────────────────────────────────
+    async function loadLeaderboard() {
+        const data = await fetch('/leaderboard').then(r => r.json())
+        if (!data.length) {
+            document.getElementById('lb-empty').style.display = 'block'
+            document.getElementById('lb-content').style.display = 'none'
+            return
+        }
+        document.getElementById('lb-empty').style.display = 'none'
+        document.getElementById('lb-content').style.display = 'block'
+
+        // stat cards (top 2 models)
+        const top = data[0]
+        document.getElementById('lb-stat-grid').innerHTML = `
+            <div class="lb-stat-card">
+                <div class="lb-stat-num">${top.overall}</div>
+                <div class="lb-stat-desc">Best overall — ${top.label}</div>
+            </div>
+            <div class="lb-stat-card">
+                <div class="lb-stat-num">${top.avg_latency_ms}<span style="font-size:1.2rem;color:var(--sub)">ms</span></div>
+                <div class="lb-stat-desc">Avg latency — ${top.label}</div>
+            </div>`
+
+        document.getElementById('lb-body').innerHTML = data.map((m, i) => `
+            <tr>
+                <td class="rank-num ${i===0?'rank-1':''}">${m.rank}</td>
+                <td><span class="model-name-cell">${m.label}</span><span class="model-co">${m.company}</span></td>
+                <td>${pill(m.overall)}</td>
+                <td>${m.correctness}<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.correctness*100}%"></div></div></td>
+                <td>${m.relevance}<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.relevance*100}%"></div></div></td>
+                <td>${m.faithfulness}<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.faithfulness*100}%"></div></div></td>
+                <td>${m.completeness}<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.completeness*100}%"></div></div></td>
+                <td>${m.hallucination_free}<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.hallucination_free*100}%"></div></div></td>
+                <td class="latency-badge">${m.avg_latency_ms}ms</td>
+                <td>${m.total_evals}</td>
+                <td class="cache-badge">${m.cache_hits}</td>
+            </tr>`).join('')
+
+        renderCharts(data)
+    }
+
+    function renderCharts(data) {
+        if (chartM) chartM.destroy()
+        if (chartO) chartO.destroy()
+        chartM = new Chart(document.getElementById('chart-metrics'), {
+            type: 'bar',
+            data: { labels: METRIC_LABELS, datasets: data.map((m,i) => ({
+                label: m.label, data: METRIC_KEYS.map(k => m[k]),
+                backgroundColor: CHART_COLORS[i%CHART_COLORS.length]+'33',
+                borderColor: CHART_COLORS[i%CHART_COLORS.length], borderWidth: 1.5,
+            }))},
+            options: { responsive: true, scales: { y: { min:0, max:1 }}, plugins:{ legend:{labels:{color:'#8b8b9e',font:{size:11}}}}}
+        })
+        chartO = new Chart(document.getElementById('chart-overall'), {
+            type: 'doughnut',
+            data: { labels: data.map(d=>d.label), datasets:[{
+                data: data.map(d=>d.overall),
+                backgroundColor: CHART_COLORS.slice(0,data.length).map(c=>c+'77'),
+                borderColor: CHART_COLORS.slice(0,data.length).map(c=>c+'bb'), borderWidth: 1
+            }]},
+            options: { responsive:true, plugins:{legend:{labels:{color:'#8b8b9e',font:{size:11}}}}}
+        })
+    }
+
+    // ── Evaluate ────────────────────────────────────────────────
+    function showEvalError(msg) {
+        const el = document.getElementById('eval-error')
+        el.textContent = msg; el.style.display = 'block'
+        setTimeout(() => el.style.display = 'none', 5000)
+    }
+
+    async function runEval() {
+        const prompt = document.getElementById('eval-prompt').value.trim()
+        if (!prompt) return showEvalError('Enter a prompt before running.')
+        const models = getSelected()
+        if (!models.length) return showEvalError('Select at least one model.')
+
+        document.getElementById('eval-btn').disabled = true
+        document.getElementById('eval-loading').style.display = 'flex'
+        document.getElementById('eval-results').style.display = 'none'
+
+        const res = await fetch('/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getHeaders() },
+            body: JSON.stringify({
+                prompt,
+                expected: document.getElementById('eval-expected').value.trim(),
+                models,
+                experiment_name: document.getElementById('eval-name').value || 'Single Evaluation'
+            })
+        })
+        const data = await res.json()
+        document.getElementById('eval-btn').disabled = false
+        document.getElementById('eval-loading').style.display = 'none'
+
+        if (!res.ok) return showEvalError(data.detail || 'Something went wrong.')
+
+        document.getElementById('eval-results').style.display = 'block'
+        renderResults(data.results)
+        loadLeaderboard()
+    }
+
+    function renderResults(results) {
+        _responses = results.map(r => ({ label: r.label || r.model, text: r.response || '' }))
+        const winner = results.reduce((a,b) => a.overall > b.overall ? a : b)
+
+        const wb = document.getElementById('winner-bar')
+        wb.style.display = 'block'
+        wb.innerHTML = `<b>${winner.label || winner.model}</b> wins this round — <span class="winner-score">${winner.overall}</span> overall`
+
+        document.getElementById('results-grid').innerHTML = results.map((r, idx) => `
+            <div class="result-card ${r.model === winner.model ? 'winner-card' : ''}">
+                <div class="result-header">
+                    <div>
+                        <div class="result-model-name">${r.model}</div>
+                        <div class="result-company">${r.company || ''}</div>
+                    </div>
+                    <div class="result-tags">
+                        ${r.cached ? '<span class="cached-tag">Cached</span>' : ''}
+                        <span class="latency-tag">${r.cached ? '' : r.latency_ms + 'ms'}</span>
+                    </div>
+                </div>
+                <div class="result-score">${r.overall}</div>
+                <div class="result-score-label">Overall Score</div>
+                ${METRIC_KEYS.map((k,i) => `
+                    <div class="metric-row">
+                        <span class="metric-name-label">${METRIC_LABELS[i]}</span>
+                        ${pill(r.scores[k])}
+                    </div>`).join('')}
+                <div class="result-response">
+                    <div class="response-label">Response</div>
+                    <div class="response-text">${(r.response||'').slice(0,260)}${(r.response||'').length>260?'...':''}</div>
+                    <button class="view-full-btn" onclick="openResponse(${idx})">View full response →</button>
+                </div>
+            </div>`).join('')
+    }
+
+    // ── Batch ───────────────────────────────────────────────────
+    function handleFile(input) {
+        selectedFile = input.files[0]
+        if (selectedFile) {
+            document.getElementById('file-info').style.display = 'block'
+            document.getElementById('file-info').textContent = `${selectedFile.name} — ${(selectedFile.size/1024).toFixed(1)} KB`
+            document.getElementById('batch-btn').disabled = false
+        }
+    }
+    async function runBatch() {
+        if (!selectedFile) return
+        document.getElementById('batch-btn').disabled = true
+        document.getElementById('batch-loading').style.display = 'flex'
+        document.getElementById('batch-results').style.display = 'none'
+
+        const fd = new FormData()
+        fd.append('file', selectedFile)
+        fd.append('experiment_name', document.getElementById('batch-name').value || 'Batch Evaluation')
+
+        const res = await fetch('/batch', { method:'POST', headers: getHeaders(), body: fd })
+        const data = await res.json()
+        document.getElementById('batch-btn').disabled = false
+        document.getElementById('batch-loading').style.display = 'none'
+        document.getElementById('batch-results').style.display = 'block'
+        document.getElementById('batch-summary').innerHTML = `
+            <div class="card">
+                <div class="big-stat">${data.total}</div>
+                <div class="big-stat-label">Prompts evaluated — Experiment #${data.experiment_id} saved</div>
+                <button class="btn-ghost" style="margin-top:20px" onclick="showPage('experiments',document.querySelectorAll('.nav-tab')[3]);loadExperiments()">View in Experiments →</button>
+            </div>`
+        loadLeaderboard()
+    }
+
+    // ── Experiments ─────────────────────────────────────────────
+    async function loadExperiments() {
+        const data = await fetch('/experiments').then(r => r.json())
+        if (!data.length) {
+            document.getElementById('exp-empty').style.display = 'block'
+            document.getElementById('exp-table-wrap').style.display = 'none'
+            return
+        }
+        document.getElementById('exp-empty').style.display = 'none'
+        document.getElementById('exp-table-wrap').style.display = 'block'
+        document.getElementById('exp-body').innerHTML = data.map(e => `
+            <tr>
+                <td>#${e.id}</td>
+                <td class="model-name-cell">${e.name}</td>
+                <td>${new Date(e.created_at).toLocaleString()}</td>
+                <td>${e.total_prompts}</td>
+                <td style="font-size:11px">${(e.models_tested||[]).join(', ')}</td>
+                <td>${pill(e.avg_score)}</td>
+                <td><button class="view-full-btn" onclick="viewExperiment(${e.id},'${e.name.replace(/'/g,"\\'")}')">View →</button></td>
+            </tr>`).join('')
+    }
+
+    async function viewExperiment(id, name) {
+        const data = await fetch(`/experiments/${id}`).then(r => r.json())
+        document.getElementById('detail-title').textContent = name
+        document.getElementById('detail-body').innerHTML = `
+            <p style="font-size:11px;color:var(--muted);margin-bottom:20px;letter-spacing:0.5px">${data.results.length} RESULTS · MODELS: ${(data.models_tested||[]).join(', ')}</p>
+            <div style="overflow-x:auto">
+            <table>
+                <thead><tr><th>Prompt</th><th>Model</th><th>Overall</th><th>Correct</th><th>Relevant</th><th>Faithful</th><th>Complete</th><th>No Halluc.</th><th>Latency</th></tr></thead>
+                <tbody>${data.results.map(r => `
+                    <tr>
+                        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.prompt}">${r.prompt}</td>
+                        <td>${r.model_name}</td>
+                        <td>${pill(r.overall_score)}</td>
+                        <td>${r.scores.correctness}</td><td>${r.scores.relevance}</td>
+                        <td>${r.scores.faithfulness}</td><td>${r.scores.completeness}</td>
+                        <td>${r.scores.hallucination_free}</td>
+                        <td class="latency-badge">${r.cached?'—':r.latency_ms+'ms'}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table></div>`
+        document.getElementById('detail-modal').style.display = 'block'
+    }
+
+    // ── Modals ──────────────────────────────────────────────────
+    function openResponse(idx) {
+        const r = _responses[idx]
+        document.getElementById('response-modal-title').textContent = r.label + ' — Full Response'
+        document.getElementById('response-modal-text').textContent = r.text
+        document.getElementById('response-modal').style.display = 'block'
+    }
+    function closeResponse() { document.getElementById('response-modal').style.display = 'none' }
+    function closeDetail()   { document.getElementById('detail-modal').style.display = 'none' }
+</script>
+</body>
+</html>
