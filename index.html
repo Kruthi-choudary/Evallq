@@ -340,6 +340,31 @@
 
         /* ── Empty state ─────────────────────────────────────── */
         .empty { text-align: center; padding: 64px 24px; color: var(--sub); font-size: 14px; letter-spacing: 0.5px; }
+        /* ── Comparison modal ────────────────────────────────── */
+        .compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 20px; }
+        .compare-card { background: var(--bg); border: 1px solid var(--border); padding: 18px; }
+        .compare-card-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--purple); margin-bottom: 10px; font-weight: 600; }
+        .compare-response { font-size: 13px; color: var(--sub); line-height: 1.7; max-height: 180px; overflow-y: auto; margin-bottom: 14px; white-space: pre-wrap; word-break: break-word; }
+        .compare-scores { display: flex; flex-wrap: wrap; gap: 6px; }
+        .compare-score-chip { font-size: 11px; color: var(--muted); background: var(--bg-card); border: 1px solid var(--border); padding: 3px 8px; }
+        .compare-overall { font-size: 20px; font-weight: 700; color: var(--purple); margin-bottom: 6px; }
+        .compare-prompt-box { background: var(--bg); border-left: 3px solid var(--purple); padding: 14px 18px; font-size: 14px; color: var(--sub); line-height: 1.6; margin-bottom: 4px; word-break: break-word; }
+        .compare-meta { font-size: 11px; color: var(--muted); margin-bottom: 20px; }
+
+        /* ── Prompt library ──────────────────────────────────── */
+        .prompt-lib-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 14px 0 10px; }
+        .prompt-lib-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+        .prompt-lib-toggle { font-size: 14px; color: var(--muted); }
+        .saved-prompt-list { border-top: 1px solid var(--border); margin-top: 4px; }
+        .saved-prompt-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .saved-prompt-name { flex: 1; font-size: 13px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .saved-prompt-preview { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+        .prompt-lib-empty { font-size: 13px; color: var(--muted); padding: 14px 0; }
+        .btn-save-prompt { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--purple); background: none; border: 1px solid var(--purple); padding: 5px 12px; cursor: pointer; }
+        .btn-save-prompt:hover { background: rgba(168,85,247,0.1); }
+        .btn-load { font-size: 11px; color: var(--purple); background: none; border: none; cursor: pointer; padding: 0; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-del { font-size: 11px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 0; }
+        .btn-del:hover { color: #f87171; }
     </style>
 </head>
 <body>
@@ -427,7 +452,10 @@
     <div class="section-label">Run a Prompt</div>
     <div class="card">
         <div class="form-group">
-            <label class="form-label">Prompt</label>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <label class="form-label" style="margin:0">Prompt</label>
+                <button class="btn-save-prompt" onclick="savePrompt()">+ Save Prompt</button>
+            </div>
             <textarea id="eval-prompt" rows="4" placeholder="e.g. Explain how transformer attention works"></textarea>
         </div>
         <div class="form-group">
@@ -447,6 +475,16 @@
         <button class="btn-primary" id="eval-btn" onclick="runEval()">Run Evaluation</button>
         <div class="eval-error" id="eval-error"></div>
         <div class="loading-row" id="eval-loading"><div class="loading-dot"></div> Calling models and scoring responses — ~30 seconds</div>
+    </div>
+
+    <div class="card" style="margin-top:16px;padding-top:0">
+        <div class="prompt-lib-header" onclick="togglePromptLib()">
+            <span class="prompt-lib-title">Saved Prompts</span>
+            <span class="prompt-lib-toggle" id="prompt-lib-chevron">▾</span>
+        </div>
+        <div id="prompt-lib-content" style="display:none">
+            <div id="prompt-lib-list"></div>
+        </div>
     </div>
 
     <div id="eval-results" style="display:none">
@@ -529,6 +567,17 @@
                 <div class="key-status" id="status-gemini">Not set</div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- COMPARE MODAL -->
+<div class="modal-overlay" id="compare-modal" onclick="if(event.target===this)closeCompare()">
+    <div class="modal modal-wide">
+        <div class="modal-head">
+            <div class="modal-head-title" id="compare-modal-title">Response Comparison</div>
+            <button class="modal-close" onclick="closeCompare()">×</button>
+        </div>
+        <div class="modal-body" id="compare-modal-body"></div>
     </div>
 </div>
 
@@ -929,27 +978,151 @@
             </tr>`).join('')
     }
 
+    let _currentExpData = null
+    let _currentExpPrompts = []
+
     async function viewExperiment(id, name) {
         const data = await fetch(`/experiments/${id}`).then(r => r.json())
+        _currentExpData = data
+
+        const promptMap = {}
+        data.results.forEach(r => {
+            if (!promptMap[r.prompt]) promptMap[r.prompt] = []
+            promptMap[r.prompt].push(r)
+        })
+        _currentExpPrompts = Object.keys(promptMap).map(p => ({ prompt: p, results: promptMap[p] }))
+
         document.getElementById('detail-title').textContent = name
         document.getElementById('detail-body').innerHTML = `
-            <p style="font-size:11px;color:var(--muted);margin-bottom:20px;letter-spacing:0.5px">${data.results.length} RESULTS · MODELS: ${(data.models_tested||[]).join(', ')}</p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+                <p style="font-size:11px;color:var(--muted);letter-spacing:0.5px;margin:0">${data.results.length} RESULTS · ${_currentExpPrompts.length} PROMPT${_currentExpPrompts.length!==1?'S':''} · ${(data.models_tested||[]).join(', ')}</p>
+                <button class="btn-ghost" onclick="downloadCSV()">↓ Export CSV</button>
+            </div>
             <div style="overflow-x:auto">
             <table>
-                <thead><tr><th>Prompt</th><th>Model</th><th>Overall</th><th>Correct</th><th>Relevant</th><th>Faithful</th><th>Complete</th><th>No Halluc.</th><th>Latency</th></tr></thead>
-                <tbody>${data.results.map(r => `
-                    <tr>
-                        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.prompt}">${r.prompt}</td>
-                        <td>${r.model_name}</td>
-                        <td>${pill(r.overall_score)}</td>
-                        <td>${r.scores.correctness}</td><td>${r.scores.relevance}</td>
-                        <td>${r.scores.faithfulness}</td><td>${r.scores.completeness}</td>
-                        <td>${r.scores.hallucination_free}</td>
-                        <td class="latency-badge">${r.cached?'—':r.latency_ms+'ms'}</td>
-                    </tr>`).join('')}
+                <thead><tr><th>#</th><th>Prompt</th><th>Models</th><th>Best Score</th><th></th></tr></thead>
+                <tbody>${_currentExpPrompts.map((p, i) => {
+                    const best = Math.max(...p.results.map(r => r.overall_score))
+                    const truncated = p.prompt.length > 80 ? p.prompt.slice(0, 80) + '…' : p.prompt
+                    return '<tr>' +
+                        '<td class="rank-num">' + (i+1) + '</td>' +
+                        '<td style="max-width:320px" title="' + p.prompt.replace(/"/g,'&quot;') + '">' + truncated + '</td>' +
+                        '<td style="font-size:11px;color:var(--muted)">' + p.results.length + ' model' + (p.results.length!==1?'s':'') + '</td>' +
+                        '<td>' + pill(best) + '</td>' +
+                        '<td><button class="view-full-btn" onclick="comparePrompt(' + i + ')">Compare →</button></td>' +
+                    '</tr>'
+                }).join('')}
                 </tbody>
             </table></div>`
         document.getElementById('detail-modal').style.display = 'block'
+    }
+
+    function comparePrompt(i) {
+        const { prompt, results } = _currentExpPrompts[i]
+        document.getElementById('compare-modal-title').textContent = 'Prompt ' + (i+1) + ' — ' + results.length + ' Models'
+        const scoreKeys = ['correctness','relevance','faithfulness','completeness','hallucination_free']
+        const scoreLabels = ['Correct','Relevant','Faithful','Complete','No Halluc.']
+        const cards = results.map(r =>
+            '<div class="compare-card">' +
+                '<div class="compare-card-label">' + r.model_name + '</div>' +
+                '<div class="compare-overall">' + r.overall_score + '</div>' +
+                '<div class="compare-scores" style="margin-bottom:14px">' +
+                    scoreKeys.map((k,j) => '<span class="compare-score-chip">' + scoreLabels[j] + ': ' + r.scores[k] + '</span>').join('') +
+                    '<span class="compare-score-chip latency-badge">' + (r.cached ? 'cached' : r.latency_ms + 'ms') + '</span>' +
+                '</div>' +
+                '<div class="compare-response">' + (r.response||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+                (r.reasoning ? '<div style="border-left:2px solid var(--purple);padding:8px 12px;font-size:12px;color:var(--muted);line-height:1.6;background:rgba(168,85,247,0.05)">' + r.reasoning + '</div>' : '') +
+            '</div>'
+        ).join('')
+        document.getElementById('compare-modal-body').innerHTML =
+            '<div class="compare-prompt-box">' + prompt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+            '<p class="compare-meta">' + results.length + ' model' + (results.length!==1?'s':'') + ' evaluated this prompt</p>' +
+            '<div class="compare-grid">' + cards + '</div>'
+        document.getElementById('compare-modal').style.display = 'block'
+    }
+
+    function closeCompare() { document.getElementById('compare-modal').style.display = 'none' }
+
+    function downloadCSV() {
+        if (!_currentExpData) return
+        const headers = ['prompt','expected','model','overall','correctness','relevance','faithfulness','completeness','hallucination_free','latency_ms','cached','input_tokens','output_tokens','cost_usd','reasoning']
+        const rows = _currentExpData.results.map(r => [
+            '"' + (r.prompt||'').replace(/"/g,'""') + '"',
+            '"' + (r.expected||'').replace(/"/g,'""') + '"',
+            r.model_name, r.overall_score,
+            r.scores.correctness, r.scores.relevance, r.scores.faithfulness, r.scores.completeness, r.scores.hallucination_free,
+            r.latency_ms, r.cached,
+            r.input_tokens||0, r.output_tokens||0, r.cost_usd||0,
+            '"' + (r.reasoning||'').replace(/"/g,'""') + '"'
+        ].join(','))
+        const csv = [headers.join(','), ...rows].join('\n')
+        const blob = new Blob([csv], { type: 'text/csv' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = 'evallq_experiment_' + _currentExpData.id + '.csv'
+        a.click()
+    }
+
+    // ── Prompt Library ──────────────────────────────────────
+    function _getPrompts() { return JSON.parse(localStorage.getItem('evallq_prompts') || '[]') }
+    function _setPrompts(arr) { localStorage.setItem('evallq_prompts', JSON.stringify(arr)) }
+
+    function togglePromptLib() {
+        const content = document.getElementById('prompt-lib-content')
+        const chevron = document.getElementById('prompt-lib-chevron')
+        const open = content.style.display !== 'none'
+        content.style.display = open ? 'none' : 'block'
+        chevron.textContent = open ? '▾' : '▴'
+        if (!open) renderPromptLib()
+    }
+
+    function renderPromptLib() {
+        const prompts = _getPrompts()
+        const el = document.getElementById('prompt-lib-list')
+        if (!prompts.length) {
+            el.innerHTML = '<div class="prompt-lib-empty">No saved prompts yet. Type a prompt above and click “+ Save Prompt”.</div>'
+            return
+        }
+        el.innerHTML = '<div class="saved-prompt-list">' + prompts.map((p, i) =>
+            '<div class="saved-prompt-row">' +
+                '<div style="flex:1;min-width:0">' +
+                    '<div class="saved-prompt-name">' + p.name.replace(/</g,'&lt;') + '</div>' +
+                    '<div class="saved-prompt-preview">' + p.prompt.replace(/</g,'&lt;') + '</div>' +
+                '</div>' +
+                '<button class="btn-load" onclick="loadPrompt(' + i + ')">Load</button>' +
+                '<button class="btn-del" onclick="deletePrompt(' + i + ')" title="Delete">✕</button>' +
+            '</div>'
+        ).join('') + '</div>'
+    }
+
+    function savePrompt() {
+        const prompt = document.getElementById('eval-prompt').value.trim()
+        const expected = document.getElementById('eval-expected').value.trim()
+        if (!prompt) { alert('Write a prompt first.'); return }
+        const name = window.prompt('Name this prompt:', prompt.slice(0, 40))
+        if (!name) return
+        const prompts = _getPrompts()
+        prompts.unshift({ name: name.trim(), prompt, expected })
+        _setPrompts(prompts)
+        document.getElementById('prompt-lib-content').style.display = 'block'
+        document.getElementById('prompt-lib-chevron').textContent = '▴'
+        renderPromptLib()
+    }
+
+    function loadPrompt(i) {
+        const p = _getPrompts()[i]
+        document.getElementById('eval-prompt').value = p.prompt
+        document.getElementById('eval-expected').value = p.expected || ''
+        document.getElementById('prompt-lib-content').style.display = 'none'
+        document.getElementById('prompt-lib-chevron').textContent = '▾'
+        document.getElementById('eval-prompt').focus()
+    }
+
+    function deletePrompt(i) {
+        const prompts = _getPrompts()
+        prompts.splice(i, 1)
+        _setPrompts(prompts)
+        renderPromptLib()
     }
 
     // ── Modals ──────────────────────────────────────────────────
