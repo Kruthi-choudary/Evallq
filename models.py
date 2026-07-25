@@ -25,9 +25,10 @@ MODEL_REGISTRY = {
     "claude-sonnet": {"provider":"anthropic","model_id":"claude-sonnet-4-6","label":"Claude Sonnet 4","company":"Anthropic","free":False,"cost_in":3.0,"cost_out":15.0},
     "claude-haiku":  {"provider":"anthropic","model_id":"claude-haiku-4-5-20251001","label":"Claude Haiku 4","company":"Anthropic","free":False,"cost_in":0.80,"cost_out":4.0},
 
-    "gemini-2.5-pro":   {"provider":"gemini","model_id":"gemini-2.5-pro","label":"Gemini 2.5 Pro","company":"Google","free":False,"cost_in":1.25,"cost_out":10.0},
-    "gemini-2.5-flash": {"provider":"gemini","model_id":"gemini-2.5-flash","label":"Gemini 2.5 Flash","company":"Google","free":False,"cost_in":0.30,"cost_out":2.50},
-    "gemini-2.0-flash": {"provider":"gemini","model_id":"gemini-2.0-flash","label":"Gemini 2.0 Flash","company":"Google","free":False,"cost_in":0.10,"cost_out":0.40},
+    "gemini-2.5-pro":        {"provider":"gemini","model_id":"gemini-2.5-pro","label":"Gemini 2.5 Pro","company":"Google","free":False,"cost_in":1.25,"cost_out":10.0},
+    "gemini-2.5-flash":      {"provider":"gemini","model_id":"gemini-2.5-flash","label":"Gemini 2.5 Flash","company":"Google","free":False,"cost_in":0.30,"cost_out":2.50},
+    "gemini-2.5-flash-lite": {"provider":"gemini","model_id":"gemini-2.5-flash-lite","label":"Gemini 2.5 Flash Lite","company":"Google","free":False,"cost_in":0.10,"cost_out":0.40},
+    "gemini-2.0-flash":      {"provider":"gemini","model_id":"gemini-2.0-flash","label":"Gemini 2.0 Flash","company":"Google","free":False,"cost_in":0.10,"cost_out":0.40},
 }
 
 AVAILABLE_MODELS = {k: v["model_id"] for k, v in MODEL_REGISTRY.items()}
