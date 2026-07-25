@@ -25,8 +25,10 @@ MODEL_REGISTRY = {
     "claude-sonnet": {"provider":"anthropic","model_id":"claude-sonnet-4-6","label":"Claude Sonnet 4","company":"Anthropic","free":False,"cost_in":3.0,"cost_out":15.0},
     "claude-haiku":  {"provider":"anthropic","model_id":"claude-haiku-4-5-20251001","label":"Claude Haiku 4","company":"Anthropic","free":False,"cost_in":0.80,"cost_out":4.0},
 
+    "gemini-3.6-flash":      {"provider":"gemini","model_id":"gemini-3.6-flash","label":"Gemini 3.6 Flash","company":"Google","free":False,"cost_in":0.0,"cost_out":0.0},
+    "gemini-3.5-flash":      {"provider":"gemini","model_id":"gemini-3.5-flash","label":"Gemini 3.5 Flash","company":"Google","free":False,"cost_in":0.0,"cost_out":0.0},
+    "gemini-3.5-flash-lite": {"provider":"gemini","model_id":"gemini-3.5-flash-lite","label":"Gemini 3.5 Flash Lite","company":"Google","free":False,"cost_in":0.0,"cost_out":0.0},
     "gemini-2.5-pro":        {"provider":"gemini","model_id":"gemini-2.5-pro","label":"Gemini 2.5 Pro","company":"Google","free":False,"cost_in":1.25,"cost_out":10.0},
-    "gemini-2.5-flash":      {"provider":"gemini","model_id":"gemini-2.5-flash","label":"Gemini 2.5 Flash","company":"Google","free":False,"cost_in":0.30,"cost_out":2.50},
     "gemini-2.5-flash-lite": {"provider":"gemini","model_id":"gemini-2.5-flash-lite","label":"Gemini 2.5 Flash Lite","company":"Google","free":False,"cost_in":0.10,"cost_out":0.40},
     "gemini-2.0-flash":      {"provider":"gemini","model_id":"gemini-2.0-flash","label":"Gemini 2.0 Flash","company":"Google","free":False,"cost_in":0.10,"cost_out":0.40},
 }
@@ -83,8 +85,16 @@ def call_model(model_key: str, prompt: str, api_keys: dict = None) -> dict:
 
     elif provider == "gemini":
         from google import genai
+        from google.genai.errors import ClientError as GeminiClientError
         client = genai.Client(api_key=api_keys.get("gemini"))
-        response = client.models.generate_content(model=model_id, contents=prompt)
+        _GEMINI_FALLBACK = "gemini-3.6-flash"
+        try:
+            response = client.models.generate_content(model=model_id, contents=prompt)
+        except GeminiClientError as e:
+            if "404" in str(e) and model_id != _GEMINI_FALLBACK:
+                response = client.models.generate_content(model=_GEMINI_FALLBACK, contents=prompt)
+            else:
+                raise
         text = response.text.strip()
         if response.usage_metadata:
             input_tokens  = response.usage_metadata.prompt_token_count or 0
